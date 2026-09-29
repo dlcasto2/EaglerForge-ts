@@ -1,0 +1,76 @@
+<!-- Chunked web loader (Devon Browser / db-v2 site). Filled in by build.mjs for dist/web/. -->
+<div id="devon_loading" style="position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#111;color:#ddd;font-family:system-ui,-apple-system,sans-serif;">
+<div style="font-size:18px;font-weight:600;">EaglercraftX 1.8</div>
+<div style="width:240px;height:6px;border-radius:3px;background:rgba(255,255,255,.12);overflow:hidden;"><div id="devon_fill" style="width:0%;height:100%;background:#ff7a2f;transition:width .15s;"></div></div>
+<div id="devon_status" style="font-size:12px;color:#999;">Downloading game…</div>
+</div>
+<script>
+(function () {
+  var CLASSES = __DEVON_CLASSES__, ASSETS = __DEVON_ASSETS__;
+  var total = CLASSES.size + ASSETS.size, got = 0;
+  var fill = document.getElementById("devon_fill"), status = document.getElementById("devon_status");
+  function progress() { fill.style.width = Math.round(100 * got / total) + "%"; }
+  function fail(e) {
+    var msg = e && e.message ? e.message : String(e);
+    status.textContent = msg; status.style.color = "#ff8a80";
+    try { parent.postMessage({ devonGame: "error", message: msg }, "*"); } catch (x) {}
+  }
+  function part(url) {
+    return fetch(url).then(function (res) {
+      if (!res.ok) throw new Error("HTTP " + res.status + " for " + url);
+      if (!res.body || !res.body.getReader) return res.blob().then(function (b) { got += b.size; progress(); return b; });
+      var reader = res.body.getReader(), chunks = [];
+      function pump() {
+        return reader.read().then(function (r) {
+          if (r.done) return new Blob(chunks);
+          chunks.push(r.value); got += r.value.byteLength; progress();
+          return pump();
+        });
+      }
+      return pump();
+    });
+  }
+  function joined(name, info) {
+    var jobs = [];
+    for (var i = 0; i < info.parts; i++) jobs.push(part("Build/" + name + ".part" + (i < 10 ? "0" : "") + i));
+    return Promise.all(jobs).then(function (parts) { return new Blob(parts); });
+  }
+  function gunzip(blob) {
+    if (typeof DecompressionStream === "undefined") throw new Error("This browser is too old to run Eaglercraft here (needs Safari 16.4+ / Chrome 80+)");
+    return new Response(blob.stream().pipeThrough(new DecompressionStream("gzip"))).blob();
+  }
+  function run(el, attrs) {
+    return new Promise(function (resolve, reject) {
+      var s = document.createElement("script");
+      if (el.id) s.id = el.id;
+      if (attrs && attrs.src) {
+        s.src = attrs.src;
+        s.onload = function () { resolve(); };
+        s.onerror = function () { reject(new Error("Couldn't start the game")); };
+      } else {
+        s.text = el.textContent;
+      }
+      el.parentNode.replaceChild(s, el);
+      if (!attrs || !attrs.src) resolve();
+    });
+  }
+  Promise.all([
+    joined("classes.js.gz", CLASSES).then(gunzip).then(function (b) { return URL.createObjectURL(new Blob([b], { type: "text/javascript" })); }),
+    joined("assets.epk", ASSETS).then(function (b) { return URL.createObjectURL(b); }),
+  ]).then(function (urls) {
+    status.textContent = "Starting…";
+    window.__devonAssetsURL = urls[1];
+    // classes.js records its own <script> element; the singleplayer worker is loaded from its src
+    return run(document.querySelector('script[type="text/x-devon-classes"]'), { src: urls[0] });
+  }).then(function () {
+    var list = document.querySelectorAll('script[type="text/x-devon-deferred"]');
+    var chain = Promise.resolve();
+    Array.prototype.forEach.call(list, function (el) { chain = chain.then(function () { return run(el); }); });
+    return chain;
+  }).then(function () {
+    var ui = document.getElementById("devon_loading");
+    if (ui) ui.parentNode.removeChild(ui);
+    try { parent.postMessage({ devonGame: "ready" }, "*"); } catch (x) {}
+  }).catch(fail);
+})();
+</script>

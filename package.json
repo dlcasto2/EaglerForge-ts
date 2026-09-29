@@ -1,0 +1,14 @@
+{
+  "name": "eaglercraft-efi-client",
+  "version": "2.7.97",
+  "private": true,
+  "description": "EaglercraftX 1.8.8 + EaglerForge client, TypeScript sources. Builds to a single offline HTML file.",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p . --noEmit",
+    "build": "node build.mjs"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
+  }
+}
