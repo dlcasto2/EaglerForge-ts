@@ -27,6 +27,7 @@ npm run typecheck  # type-check only
 | `src/types/globals.d.ts` | Shared global types (`ModAPI`, `eaglercraftXOpts`, mod loader functions, `Window` additions) |
 | `vendor/classes.js` | TeaVM-compiled game (68 MB, generated from Java) - kept as JavaScript |
 | `vendor/assets.epk` | Game asset pack (was base64 in the HTML) |
+| `tools/extract-vendor.mjs` | Re-extracts both vendor files from an original single-file client: `npm run vendor -- "path/to/processed (1).html"` |
 | `index.template.html` | HTML shell; `<!-- @inline ... -->` markers are filled by `build.mjs` |
 
 ## Notes
