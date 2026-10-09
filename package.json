@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "typecheck": "tsc -p . --noEmit",
-    "build": "node build.mjs"
+    "build": "node build.mjs",
+    "vendor": "node tools/extract-vendor.mjs"
   },
   "devDependencies": {
     "typescript": "^6.0.3"
